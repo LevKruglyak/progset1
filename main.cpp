@@ -1,5 +1,35 @@
+#include "helpers.hpp"
 #include <iostream>
+#include <string.h>
+
+static void usage() {
+    fprintf(stderr, "\
+Usage: ./randmst [-db DEBUG] [-p NUM POINTS] [-t NUM TRIALS] [-d DIMENSION]\n");
+    exit(1);
+}
 
 int main(int argc, char *argv[]) {
-    std::cout << "Hello, World!" << std::endl;
+    // Validate arguments
+    if (argc == 5) {
+        bool debug;
+        unsigned int points, trials, dimension;
+        
+        // Ensure all parameters are integers
+        if (is_integer_string(argv[1]) && is_integer_string(argv[2]) && is_integer_string(argv[3]) && is_integer_string(argv[4])) {
+
+            debug = (strtol(argv[1], nullptr, 10) != 0);
+
+            points = (unsigned int) strtol(argv[2], nullptr, 10);
+            trials = (unsigned int) strtol(argv[3], nullptr, 10);
+            dimension = (unsigned int) strtol(argv[4], nullptr, 10);
+
+            std::cout << debug << points << trials << dimension << std::endl;
+            
+            exit(0);
+        }
+    }
+
+    // Print usage
+    usage();
 }
+

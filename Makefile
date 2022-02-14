@@ -129,6 +129,30 @@ randmst/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/randmst.dir/build.make CMakeFiles/randmst.dir/build
 .PHONY : randmst/fast
 
+helpers.o: helpers.cpp.o
+.PHONY : helpers.o
+
+# target to build an object file
+helpers.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/randmst.dir/build.make CMakeFiles/randmst.dir/helpers.cpp.o
+.PHONY : helpers.cpp.o
+
+helpers.i: helpers.cpp.i
+.PHONY : helpers.i
+
+# target to preprocess a source file
+helpers.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/randmst.dir/build.make CMakeFiles/randmst.dir/helpers.cpp.i
+.PHONY : helpers.cpp.i
+
+helpers.s: helpers.cpp.s
+.PHONY : helpers.s
+
+# target to generate assembly for a file
+helpers.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/randmst.dir/build.make CMakeFiles/randmst.dir/helpers.cpp.s
+.PHONY : helpers.cpp.s
+
 main.o: main.cpp.o
 .PHONY : main.o
 
@@ -162,6 +186,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... randmst"
+	@echo "... helpers.o"
+	@echo "... helpers.i"
+	@echo "... helpers.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
