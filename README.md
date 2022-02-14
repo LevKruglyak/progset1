@@ -5,3 +5,8 @@ To generate makefile run
 ```console
 $ cmake -S . -O .
 ```
+Then run 
+```console
+$ make
+```
+to build the project.
