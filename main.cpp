@@ -4,7 +4,7 @@
 
 static void usage() {
     fprintf(stderr, "\
-Usage: ./randmst [-db DEBUG] [-p NUM POINTS] [-t NUM TRIALS] [-d DIMENSION]\n");
+    Usage: ./randmst [DEBUG] [NUMPOINTS] [NUMTRIALS] [DIMENSION]\n");
     exit(1);
 }
 
