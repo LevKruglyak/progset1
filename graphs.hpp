@@ -8,7 +8,7 @@ class AbstractGraph {
 	uint32_t V;
 
 	/// Returns edge between u and v
-	virtual float weight(uint32_t u, uint32_t v);
+	virtual float weight(uint32_t u, uint32_t v) { return 0; };
 };
 
 class RandomCompleteGraph : AbstractGraph {
