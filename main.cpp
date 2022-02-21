@@ -1,6 +1,6 @@
+#include "graphs.hpp"
 #include "helpers.hpp"
 #include <iostream>
-#include <math.h>
 #include <string.h>
 
 static void usage() {
@@ -24,6 +24,11 @@ int main(int argc, char *argv[]) {
 			points = (unsigned int)strtol(argv[2], nullptr, 10);
 			trials = (unsigned int)strtol(argv[3], nullptr, 10);
 			dimension = (unsigned int)strtol(argv[4], nullptr, 10);
+
+			auto graph = RandomCompleteGraph(100, 0);
+			std::cout << graph.weight(0, 1) << std::endl;
+			std::cout << graph.weight(1, 0) << std::endl;
+			std::cout << graph.weight(1, 2) << std::endl;
 
 			exit(0);
 		}
