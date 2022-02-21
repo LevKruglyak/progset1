@@ -1,5 +1,6 @@
 #include "helpers.hpp"
 #include <iostream>
+#include <math.h>
 #include <string.h>
 
 static void usage() {
@@ -23,8 +24,6 @@ int main(int argc, char *argv[]) {
 			points = (unsigned int)strtol(argv[2], nullptr, 10);
 			trials = (unsigned int)strtol(argv[3], nullptr, 10);
 			dimension = (unsigned int)strtol(argv[4], nullptr, 10);
-
-			std::cout << debug << points << trials << dimension << std::endl;
 
 			exit(0);
 		}
