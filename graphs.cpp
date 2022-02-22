@@ -12,34 +12,29 @@ float AbstractGraph::average_minimum_weight() {
 	}
 
 	uint32_t current_node = 0;
-	auto minimum_spanning_tree = new std::vector<float>(this->V);
+	float average = 0.0;
 
 	while (!outwards.empty()) {
 		float minimum_weight = -1;
 		std::list<uint32_t>::const_iterator minimum_node = outwards.end();
 
 		for (auto it = outwards.begin(); it != outwards.end(); ++it) {
-			float weight = this->weight(current_node, *it);
+			// float weight = this->weight(current_node, *it);
+			float weight = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+			// We can replace this with a call to rand() assuming we only visit each edge once
 			if (minimum_node == outwards.end() || weight < minimum_weight) {
 				minimum_weight = weight;
 				minimum_node = it;
 			}
 		}
 
-		minimum_spanning_tree->at(*minimum_node) = minimum_weight;
+		average += minimum_weight;
 		current_node = *minimum_node;
 
 		outwards.erase(minimum_node);
 	}
 
-	float avg = 0;
-	for (int i = 1; i < this->V; ++i) {
-		avg += minimum_spanning_tree->at(i);
-	}
-
-	delete minimum_spanning_tree;
-
-	return avg / (this->V - 1);
+	return average / (this->V - 1);
 }
 
 float RandomCompleteGraph::weight(uint32_t u, uint32_t v) {
