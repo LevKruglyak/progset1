@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <list>
+#include <vector>
 
 float AbstractGraph::average_minimum_weight() {
 	std::list<uint32_t> outwards;
@@ -11,7 +12,7 @@ float AbstractGraph::average_minimum_weight() {
 	}
 
 	uint32_t current_node = 0;
-	float minimum_spanning_tree[this->V];
+	auto minimum_spanning_tree = new std::vector<float>(this->V);
 
 	while (!outwards.empty()) {
 		float minimum_weight = -1;
@@ -25,7 +26,7 @@ float AbstractGraph::average_minimum_weight() {
 			}
 		}
 
-		minimum_spanning_tree[*minimum_node] = minimum_weight;
+		minimum_spanning_tree->at(*minimum_node) = minimum_weight;
 		current_node = *minimum_node;
 
 		outwards.erase(minimum_node);
@@ -33,8 +34,10 @@ float AbstractGraph::average_minimum_weight() {
 
 	float avg = 0;
 	for (int i = 1; i < this->V; ++i) {
-		avg += minimum_spanning_tree[i];
+		avg += minimum_spanning_tree->at(i);
 	}
+
+	delete minimum_spanning_tree;
 
 	return avg / (this->V - 1);
 }
