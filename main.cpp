@@ -25,10 +25,8 @@ int main(int argc, char *argv[]) {
 			trials = (unsigned int)strtol(argv[3], nullptr, 10);
 			dimension = (unsigned int)strtol(argv[4], nullptr, 10);
 
-			auto graph = RandomCompleteGraph(100, 0);
-			std::cout << graph.weight(0, 1) << std::endl;
-			std::cout << graph.weight(1, 0) << std::endl;
-			std::cout << graph.weight(1, 2) << std::endl;
+			auto graph = RandomCompleteGraph(1000, 0);
+			std::cout << graph.average_minimum_weight() << std::endl;
 
 			exit(0);
 		}

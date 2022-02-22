@@ -9,9 +9,11 @@ class AbstractGraph {
 
 	/// Returns edge between u and v
 	virtual float weight(uint32_t u, uint32_t v) { return 0; };
+
+	float average_minimum_weight();
 };
 
-class RandomCompleteGraph : AbstractGraph {
+class RandomCompleteGraph : public AbstractGraph {
   public:
 	RandomCompleteGraph(uint32_t V, uint32_t seed) {
 		this->V = V;
