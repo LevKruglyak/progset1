@@ -2,13 +2,12 @@
 #include "helpers.hpp"
 
 #include <algorithm>
-#include <iostream>
-#include <unordered_set>
+#include <list>
 
 float AbstractGraph::average_minimum_weight() {
-	std::unordered_set<uint32_t> outwards;
+	std::list<uint32_t> outwards;
 	for (int i = 1; i < this->V; ++i) {
-		outwards.insert(i);
+		outwards.push_front(i);
 	}
 
 	uint32_t current_node = 0;
@@ -16,17 +15,20 @@ float AbstractGraph::average_minimum_weight() {
 
 	while (!outwards.empty()) {
 		float minimum_weight = -1;
-		uint32_t minimum_node = -1;
-		for (const auto &m : outwards) {
-			float w = this->weight(current_node, m);
-			if (minimum_node == -1 || w < minimum_weight) {
-				minimum_weight = w;
-				minimum_node = m;
+		std::list<uint32_t>::const_iterator minimum_node = outwards.end();
+
+		for (auto it = outwards.begin(); it != outwards.end(); ++it) {
+			float weight = this->weight(current_node, *it);
+			if (minimum_node == outwards.end() || weight < minimum_weight) {
+				minimum_weight = weight;
+				minimum_node = it;
 			}
 		}
-		minimum_spanning_tree[minimum_node] = minimum_weight;
+
+		minimum_spanning_tree[*minimum_node] = minimum_weight;
+		current_node = *minimum_node;
+
 		outwards.erase(minimum_node);
-		current_node = minimum_node;
 	}
 
 	float avg = 0;
