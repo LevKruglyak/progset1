@@ -39,32 +39,6 @@ float AbstractGraph::average_minimum_weight() {
 	return avg / (this->V - 1);
 }
 
-/*
-float prim(RandomCompleteGraph *G) {
-	unordered_set<unsigned int> outwards; // is this the best ds to use?
-	for (int i = 1; i <= G->V; i++) {	  // cleaner?
-		outwards.insert(i);
-	}
-	unsigned int n = 0;
-	float mst[G->V];
-	while (!outwards.empty()) {
-		float min_w = -1;
-		unsigned int min_node = -1;
-		for (const auto &m : outwards) {
-			float w = G->weight(n, m);
-			if (min_node == -1 || w < min_w) {
-				min_w = w;
-				min_node = m;
-			}
-		}
-		mst[min_node] = min_w;
-		outwards.erase(min_node);
-		n = min_node;
-	}
-	return max_element(mst, mst + G->V);
-}
-*/
-
 float RandomCompleteGraph::weight(uint32_t u, uint32_t v) {
 	assert(u < this->V && v < this->V);
 
@@ -81,5 +55,5 @@ float RandomCompleteGraph::weight(uint32_t u, uint32_t v) {
 		h = v;
 	}
 
-	return random_interval(seed + hash_1(l + hash_1(h)));
+	return random_interval(seed + hash_1(l + hash_2(h)));
 }

@@ -7,6 +7,14 @@
 #include <random>
 #include <unistd.h>
 
+void Timer::start() { start_time = std::chrono::high_resolution_clock::now(); }
+void Timer::stop() { end_time = std::chrono::high_resolution_clock::now(); }
+
+unsigned int Timer::count() {
+	return std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+}
+float Timer::seconds() { return float(count()) / 1000000.0f; }
+
 /// Returns true if input represents an integer
 bool is_integer_string(const char *input) {
 	char *last;
@@ -30,6 +38,13 @@ uint32_t hash_1(uint32_t input) {
 	input = input * 0x27d4eb2d;
 	input = input ^ (input >> 15);
 	return input;
+}
+
+/// Simpler cryptographic hash function for unsigned integers
+uint32_t hash_2(uint32_t input) {
+	// http://burtleburtle.net/bob/hash/integer.html
+	input ^= (input >> 20) ^ (input >> 12);
+	return input ^ (input >> 7) ^ (input >> 4);
 }
 
 /// Return a random float in the [0,1] interval

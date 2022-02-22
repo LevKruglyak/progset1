@@ -48,6 +48,8 @@ int main(int argc, char *argv[]) {
 
 			auto results = new std::vector<float>(trials);
 
+			global_timer.start();
+
 			// Don't use threads in debug mode
 			if (!debug) {
 				std::vector<std::thread> threads;
@@ -67,13 +69,18 @@ int main(int argc, char *argv[]) {
 				}
 			}
 
+			global_timer.stop();
+
 			// Calculate and display average
 			float average = 0.0f;
 			for (auto &result : *results) {
 				average += result / trials;
 			}
-
 			std::cout << average << std::endl;
+
+			if (debug) {
+				std::cout << "time: " << global_timer.seconds() << std::endl;
+			}
 
 			exit(0);
 		}
