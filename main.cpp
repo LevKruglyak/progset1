@@ -41,49 +41,52 @@ int main(int argc, char *argv[]) {
 			trials = (unsigned int)strtol(argv[3], nullptr, 10);
 			dimension = (unsigned int)strtol(argv[4], nullptr, 10);
 
-			// Don't randonly seed the rng if in debug mode
-			if (!debug) {
-				srand(time(NULL));
-			}
-
-			auto results = new std::vector<float>(trials);
-
-			global_timer.start();
-
-			// Don't use threads in debug mode
-			if (!debug) {
-				std::vector<std::thread> threads;
-
-				for (unsigned int trial = 0; trial < trials; ++trial) {
-					threads.push_back(std::thread(compute_minimum_weight, points, dimension,
-												  (unsigned int)rand(), &results->data()[trial]));
+			for (int points = 128; points <= 262144; points *= 2) {
+				std::cout << points << " ";
+				// Don't randonly seed the rng if in debug mode
+				if (!debug) {
+					srand(time(NULL));
 				}
 
-				for (auto &thr : threads) {
-					thr.join();
+				auto results = new std::vector<float>(trials);
+
+				global_timer.start();
+
+				// Don't use threads in debug mode
+				if (!debug) {
+					std::vector<std::thread> threads;
+
+					for (unsigned int trial = 0; trial < trials; ++trial) {
+						threads.push_back(std::thread(compute_minimum_weight, points, dimension,
+													  (unsigned int)rand(),
+													  &results->data()[trial]));
+					}
+
+					for (auto &thr : threads) {
+						thr.join();
+					}
+				} else {
+					for (unsigned int trial = 0; trial < trials; ++trial) {
+						compute_minimum_weight(points, dimension, (unsigned int)rand(),
+											   &results->data()[trial]);
+					}
 				}
-			} else {
-				for (unsigned int trial = 0; trial < trials; ++trial) {
-					compute_minimum_weight(points, dimension, (unsigned int)rand(),
-										   &results->data()[trial]);
+
+				global_timer.stop();
+
+				// Calculate and display average
+				float average = 0.0f;
+				for (auto &result : *results) {
+					average += result;
+				}
+				average /= trials;
+
+				std::cout << average << std::endl;
+
+				if (debug) {
+					std::cout << "time: " << global_timer.seconds() << std::endl;
 				}
 			}
-
-			global_timer.stop();
-
-			// Calculate and display average
-			float average = 0.0f;
-			for (auto &result : *results) {
-				average += result;
-			}
-			average /= trials;
-
-			std::cout << average << std::endl;
-
-			if (debug) {
-				std::cout << "time: " << global_timer.seconds() << std::endl;
-			}
-
 			exit(0);
 		}
 	}

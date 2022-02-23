@@ -2,13 +2,14 @@
 #include "helpers.hpp"
 
 #include <algorithm>
-#include <list>
+#include <iostream>
+#include <unordered_set>
 #include <vector>
 
 float AbstractGraph::average_minimum_weight() {
-	std::list<uint32_t> outwards;
+	std::unordered_set<uint32_t> outwards;
 	for (int i = 1; i < this->V; ++i) {
-		outwards.push_front(i);
+		outwards.insert(i);
 	}
 
 	uint32_t current_node = 0;
@@ -16,20 +17,19 @@ float AbstractGraph::average_minimum_weight() {
 
 	while (!outwards.empty()) {
 		float minimum_weight = -1;
-		std::list<uint32_t>::const_iterator minimum_node = outwards.end();
+		uint32_t minimum_node = -1;
 
-		for (auto it = outwards.begin(); it != outwards.end(); ++it) {
-			// float weight = this->weight(current_node, *it);
-			float weight = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-			// We can replace this with a call to rand() assuming we only visit each edge once
-			if (minimum_node == outwards.end() || weight < minimum_weight) {
+		for (auto &node : outwards) {
+			float weight = this->weight(current_node, node);
+			//  We can replace this with a call to rand() assuming we only visit each edge once
+			if (minimum_node == -1 || weight < minimum_weight) {
 				minimum_weight = weight;
-				minimum_node = it;
+				minimum_node = node;
 			}
 		}
 
 		average += minimum_weight;
-		current_node = *minimum_node;
+		current_node = minimum_node;
 
 		outwards.erase(minimum_node);
 	}

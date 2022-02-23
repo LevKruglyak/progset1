@@ -55,3 +55,9 @@ float random_interval(uint32_t input) {
 	*((uint32_t *)&res) = (hash_1(input) >> 9) | 0x3f800000;
 	return res - 1.0f;
 }
+
+float random_interval_iterative() {
+	float res;
+	*((uint32_t *)&res) = (rand() >> 9) | 0x3f800000;
+	return res - 1.0f;
+}
