@@ -74,8 +74,10 @@ int main(int argc, char *argv[]) {
 			// Calculate and display average
 			float average = 0.0f;
 			for (auto &result : *results) {
-				average += result / trials;
+				average += result;
 			}
+			average /= trials;
+
 			std::cout << average << std::endl;
 
 			if (debug) {
