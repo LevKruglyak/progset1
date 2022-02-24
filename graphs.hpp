@@ -66,10 +66,31 @@ class Graph {
 		priority_queue<Edge,vector<Edge>, CustomCompare> Q;
 		priority_queue<Edge, vector<Edge>, CustomCompare> Q2;
 
+		int highestPowerof2(int n) //https://www.geeksforgeeks.org/highest-power-2-less-equal-given-number/
+		{
+    		int res = 0;
+    		for (int i=n; i>=1; i--)
+    		{
+        		// If i is a power of 2
+        		if ((i & (i-1)) == 0)
+        		{
+            		res = i;
+            		break;
+        		}
+    		}
+    		return res;
+		}
+
 		Graph(uint32_t V){
 			this->V = V;
-			uint32_t k = this->V/2; //random test val
-			float lim = 1.2*k/this->V;
+			//uint64_t denom = V*(V-1)+1;
+			//float lim = 2*(2*V)/denom;
+			//float lim = 1;
+			float x = (float) highestPowerof2(V);
+			float lim = 4.0*x/((float)V);// 4.0/((float)V); = expected value approx of largest edge
+			if (V < 16){
+				lim = 1;
+			}
 			//float edge_sum = 0;
 			for (uint32_t i = 0; i < V; i++){
 				//float edge_sum = 0;
