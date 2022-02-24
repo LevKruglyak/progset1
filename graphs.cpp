@@ -5,6 +5,69 @@
 #include <iostream>
 #include <unordered_set>
 #include <vector>
+#include <queue>
+#include <unordered_map>
+
+//experimentally determine that aprey's constant = the MST weight
+//we can delete any edge weights which exceed aprey's constant*k/N? Where k is some as yet unknown factor...
+
+
+void printqueue(priority_queue<Edge, vector<Edge>, CustomCompare> q) { // NB: pass by value so the print uses a copy
+    while(!q.empty()) {
+		std::cout << q.top().weight << ' ';
+        //std::cout << q.top() << ' ';
+        q.pop();
+    }
+    std::cout << '\n';
+}
+
+//populated priority queue passed in
+float Graph::kruskals(){
+    //printqueue(this->Q2);
+    float sum = 0;
+    uint32_t m = 0;
+    for (uint32_t i=0; i < this->V; i++){
+        this->set_ids[i] = i;
+        this->sets[i] = {i};
+    }
+    while (this->sets[m].size() < this->V){
+        Edge e = this->Q.top();
+        this->Q.pop();
+        if (find(e.u) == find(e.v)){
+            continue;
+        }
+        m = union_(find(e.u), find(e.v));
+        sum += e.weight;
+    }
+    return sum;
+}
+
+
+uint32_t Graph::find(uint32_t u){
+    return this->set_ids[u];
+}
+
+uint32_t Graph::union_(uint32_t i, uint32_t j){
+    if (this->sets[i].size() < this->sets[j].size()){
+        uint32_t k = i; i = j; j = k;
+    }
+    this->sets[i].insert(this->sets[j].begin(), this->sets[j].end());
+    for (uint32_t node : this->sets[j]){
+        this->set_ids[node] = i;
+    }
+    return i;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 float AbstractGraph::average_minimum_weight() {
 	std::unordered_set<uint32_t> outwards;
