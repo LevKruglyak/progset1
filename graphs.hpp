@@ -32,15 +32,20 @@ class RandomCompleteGraph : public AbstractGraph {
 	uint32_t seed;
 };
 
-
 class Edge {
 	public:
 		uint32_t u;
 		uint32_t v;
 		float weight;
 
+		float random_interval_iterative2() {
+			float res;
+			*((uint32_t *)&res) = (rand() >> 9) | 0x3f800000;
+			return res - 1.0f;
+		}
+
 		Edge(uint32_t u, uint32_t v){
-			float w = ((float) (rand() % 32767))/32767;
+			float w = (float) rand()/RAND_MAX;//random_interval_iterative2();//((float) (rand() % 32767))/32767;
 			this->u = u; this->v = v; this->weight = w;
 		}
 };
@@ -63,18 +68,23 @@ class Graph {
 
 		Graph(uint32_t V){
 			this->V = V;
-			uint32_t k = 100; //random test val
+			uint32_t k = this->V/2; //random test val
 			float lim = 1.2*k/this->V;
+			//float edge_sum = 0;
 			for (uint32_t i = 0; i < V; i++){
+				//float edge_sum = 0;
 				for (uint32_t j = i+1; j < V; j++){
 					Edge e = *(new Edge(i, j));
-					//if (e.weight > lim){
-					//	continue;
-					//}
+					if (e.weight > lim){
+						continue;
+					}
 					Q.push(e);
+					//edge_sum += e.weight;
 					//Q2.push(e);
 				}
+				//cout << "avg edge: " << edge_sum/(this->V-i-1) << ' ';
 			}
+			//cout << "avg edge: " << edge_sum/((this->V-1)*this->V/2.0) << ' ';
 		}
 	
 	float kruskals();
