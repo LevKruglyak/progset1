@@ -38,6 +38,7 @@ float Graph::kruskals(){
         }
         m = union_(find(e.u), find(e.v));
         sum += e.weight;
+        //std::cout << e.u << ' ' << e.v << ' ' << e.weight << ' ';
     }
     return sum;
 }
@@ -49,7 +50,9 @@ uint32_t Graph::find(uint32_t u){
 
 uint32_t Graph::union_(uint32_t i, uint32_t j){
     if (this->sets[i].size() < this->sets[j].size()){
-        uint32_t k = i; i = j; j = k;
+        uint32_t k = i; 
+        i = j; 
+        j = k;
     }
     this->sets[i].insert(this->sets[j].begin(), this->sets[j].end());
     for (uint32_t node : this->sets[j]){

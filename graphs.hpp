@@ -66,11 +66,11 @@ class Graph {
 			uint32_t k = 100; //random test val
 			float lim = 1.2*k/this->V;
 			for (uint32_t i = 0; i < V; i++){
-				for (uint32_t j = 0; j < V; j++){
+				for (uint32_t j = i+1; j < V; j++){
 					Edge e = *(new Edge(i, j));
-					if (e.weight > k){
-						continue;
-					}
+					//if (e.weight > lim){
+					//	continue;
+					//}
 					Q.push(e);
 					//Q2.push(e);
 				}

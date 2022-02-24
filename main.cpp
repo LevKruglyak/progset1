@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 			dimension = (unsigned int)strtol(argv[4], nullptr, 10);
 
 			//for (int points = 128; points <= 262144; points *= 2) {
-			for (int points = 128; points <= max_points; points *= 2) {
+			for (int points = 2; points <= max_points; points *= 2) {
 				std::cout << points << " ";
 				// Don't randonly seed the rng if in debug mode
 				if (!debug) {
