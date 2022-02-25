@@ -19,6 +19,7 @@ void compute_minimum_weight(unsigned int points, unsigned int dimension, unsigne
 
 	if (dimension == 0) {
 		Graph G = Graph(points);
+		G.populate_random();
 		*output = G.kruskals();
 	} else if (dimension == 2 || dimension == 3 || dimension == 4) {
 		*output = emst(points, dimension);

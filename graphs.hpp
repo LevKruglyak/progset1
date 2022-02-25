@@ -35,6 +35,7 @@ class Graph {
 
 	Graph(uint32_t V);
 
+	void populate_random();
 	float kruskals();
 	uint32_t find(uint32_t u);
 	uint32_t union_(uint32_t i, uint32_t j);

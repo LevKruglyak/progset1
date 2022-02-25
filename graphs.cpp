@@ -12,10 +12,10 @@
 
 using namespace std;
 
-Graph::Graph(uint32_t V) {
-	auto gen = RandomFloatGenerator();
-	this->V = V;
+Graph::Graph(uint32_t V) { this->V = V; }
 
+void Graph::populate_random() {
+	auto gen = RandomFloatGenerator();
 	float lim = 16.0 * power_of_two(V) / ((float)V);
 
 	if (V < 16) {
@@ -89,7 +89,7 @@ struct Node {
 			Node *child = new Node();
 
 			child->radius = this->radius / 2.0f;
-			child->diagonal_radius = this->diagonal_radius / 2.0f;
+			child->diagonal_radius = 0.0;
 			child->center = new vector<float>(d);
 			child->level = this->level + 1;
 
@@ -107,6 +107,20 @@ struct Node {
 		}
 	}
 
+	void expand(vector<Node *> *result) {
+		if (empty()) {
+			return;
+		} else if (leaf()) {
+			result->push_back(this);
+		} else {
+			for (auto &child : *children) {
+				if (!child->empty()) {
+					result->push_back(child);
+				}
+			}
+		}
+	}
+
 	unsigned int get_index(deque<float>::iterator point, unsigned int d) {
 		unsigned int index = 0;
 
@@ -121,6 +135,17 @@ struct Node {
 	}
 
 	void insert(uint32_t point, deque<float> *points, unsigned int d) {
+		// Calculate distance to center
+		float sq_dist = 0.0f;
+		for (unsigned int coord = 0; coord < d; ++coord) {
+			sq_dist += (points->at(d * point + coord) - center->at(coord)) *
+					   (points->at(d * point + coord) - center->at(coord));
+		}
+
+		if (sq_dist > this->diagonal_radius) {
+			this->diagonal_radius = sq_dist;
+		}
+
 		deque<float>::iterator point_iterator = points->begin() + d * point;
 
 		if (leaf()) {
@@ -172,6 +197,16 @@ float dist_sq(vector<float> *u, vector<float> *v, unsigned int d) {
 	return sum;
 }
 
+float dist_sq(deque<float>::iterator u, deque<float>::iterator v, unsigned int d) {
+	float sum = 0.0;
+	for (unsigned int coord = 0; coord < d; ++coord) {
+		sum += (*u - *v) * (*u - *v);
+		++u;
+		++v;
+	}
+	return sum;
+}
+
 // rouding error/ or somethinge
 bool well_separated(Node *u, Node *v, uint32_t s, deque<float> *points, unsigned int d) {
 	if (u->leaf() && v->leaf()) {
@@ -199,7 +234,7 @@ bool well_separated(Node *u, Node *v, uint32_t s, deque<float> *points, unsigned
 		max_radius = u->diagonal_radius;
 	}
 
-	return dist_sq(center_u, center_v, d) >= (s + 2) * (s + 2) * max_radius * max_radius;
+	return dist_sq(center_u, center_v, d) >= s * max_radius;
 }
 
 void ws_pairs(Node *u, Node *v, uint32_t s, deque<pair<Node *, Node *>> *wspd, deque<float> *points,
@@ -263,11 +298,9 @@ float emst(unsigned int n, unsigned int d) {
 	root->center = new vector<float>(d);
 	fill(root->center->begin(), root->center->end(), 0.5f);
 	root->radius = 0.5f;
-	root->diagonal_radius = sqrt(0.5f);
 
 	for (uint32_t point = 0; point < n; ++point) {
 		/*
-		cout << point << " point ";
 		for (unsigned int i = 0; i < d; ++i) {
 			cout << points->at(point * d + i) << " ";
 		}
@@ -277,13 +310,13 @@ float emst(unsigned int n, unsigned int d) {
 		root->insert(point, points, d);
 	}
 
-	cout << "finished building quad tree" << endl;
+	// cout << "finished building quad tree" << endl;
 
 	// Build a 2-WSPD
 	auto wspd = new deque<pair<Node *, Node *>>();
-	ws_pairs(root, root, 0, wspd, points, d);
+	ws_pairs(root, root, 2, wspd, points, d);
 
-	cout << wspd->size() << endl;
+	// cout << wspd->size() << endl;
 
 	/*
 	for (auto &val : *wspd) {
@@ -295,9 +328,93 @@ float emst(unsigned int n, unsigned int d) {
 	}
 	*/
 
+	// Construct the graph
+	Graph *G = new Graph(n);
+
+	float epsilon = 0.1;
+	float gamma = 10;
+	int depth_bound = log2(4 / epsilon);
+	int size_bound = gamma / epsilon;
+
+	for (auto &wsp : *wspd) {
+		unsigned int depth = 1;
+
+		vector<Node *> U, V;
+
+		auto node1 = wsp.first;
+		auto node2 = wsp.second;
+
+		U.push_back(node1);
+		V.push_back(node2);
+
+		while (depth <= depth_bound && U.size() < size_bound && V.size() < size_bound) {
+			++depth;
+
+			vector<Node *> Up(U.size());
+			vector<Node *> Vp(V.size());
+
+			for (auto &u_node : U) {
+				if (u_node != nullptr) {
+					u_node->expand(&Up);
+				}
+			}
+
+			for (auto &v_node : V) {
+				if (v_node != nullptr) {
+					v_node->expand(&Vp);
+				}
+			}
+
+			U = Up;
+			V = Vp;
+		}
+
+		float min_dist = 1.0f;
+		pair<uint32_t, uint32_t> min_pair;
+		for (auto &u_node : U) {
+			if (u_node != nullptr) {
+				for (auto &v_node : V) {
+					if (v_node != nullptr && u_node != v_node) {
+
+						// Calculate the distance
+						float dist = 0.0f;
+						for (unsigned int coord = 0; coord < d; ++coord) {
+							dist += pow(points->at(u_node->representative * d + coord) -
+											points->at(v_node->representative * d + coord),
+										2);
+						}
+
+						if (dist < min_dist) {
+							min_dist = dist;
+							min_pair = pair<uint32_t, uint32_t>(u_node->representative,
+																v_node->representative);
+						}
+					}
+				}
+			}
+		}
+
+		G->Q.push(Edge(min_pair.first, min_pair.second, min_dist));
+	}
+
+	// cout << "resulting graph:" << endl;
+	/*
+	while (!G->Q.empty()) {
+		auto edge = G->Q.top();
+		cout << edge.u << " -> " << edge.v << " weight : " << edge.weight << endl;
+		G->Q.pop();
+	}
+
+	return 0.0f;
+	*/
+
+	// Run Kruskal's
+	float result = G->kruskals();
+
 	// Cleanup
 	delete root;
 	delete points;
+	delete G;
 
-	return 1.0f;
+	return result;
 }
