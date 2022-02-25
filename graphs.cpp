@@ -74,7 +74,6 @@ struct Node {
 	float radius;
 	float diagonal_radius;
 	uint32_t representative = -1;
-	uint32_t count = 0;
 	unsigned int level;
 
 	void split(unsigned int d) {
@@ -118,7 +117,6 @@ struct Node {
 	}
 
 	void insert(uint32_t point, deque<float> *points, unsigned int d) {
-		count++;
 		deque<float>::iterator point_iterator = points->begin() + d * point;
 
 		if (leaf()) {
@@ -157,18 +155,6 @@ struct Node {
 		if (!leaf()) {
 			for (auto &val : *children) {
 				val->print();
-			}
-		}
-	}
-
-	void print_level(int depth) {
-		if (depth == 0) {
-			cout << count << endl;
-		} else {
-			if (!leaf()) {
-				for (auto &val : *children) {
-					val->print_level(depth - 1);
-				}
 			}
 		}
 	}
@@ -215,23 +201,18 @@ bool well_separated(Node *u, Node *v, uint32_t s, deque<float> *points, unsigned
 void ws_pairs(Node *u, Node *v, uint32_t s, deque<pair<Node *, Node *>> *wspd, deque<float> *points,
 			  unsigned int d) {
 
-	if (u->empty() || v->empty() ||
-		(v->leaf() && u->leaf() && u->representative == v->representative)) {
-		return;
-	}
-
-	cout << "calling ";
+	cout << "call " << u->level << "[";
 	u->print_list();
-	cout << ", ";
+	cout << "]  " << v->level << "[";
 	v->print_list();
-	cout << endl;
+	cout << "] " << endl;
 
 	if (well_separated(u, v, s, points, d)) {
 		pair<Node *, Node *> p(u, v);
-		cout << "   well separated " << endl;
+		// cout << "   well separated " << endl;
 		wspd->push_back(p);
 	} else {
-		if (u->level > v->level) {
+		if (u->level > v->level || u->leaf()) {
 			// Swap u and v
 			Node *w = u;
 			u = v;
@@ -240,11 +221,16 @@ void ws_pairs(Node *u, Node *v, uint32_t s, deque<pair<Node *, Node *>> *wspd, d
 		// isLeaf
 		if (!u->leaf()) {
 			for (auto &child : *u->children) {
-				ws_pairs(child, v, s, wspd, points, d);
-			}
-		} else if (!v->leaf()) {
-			for (auto &child : *v->children) {
-				ws_pairs(child, u, s, wspd, points, d);
+				if (v->empty() || child->empty() ||
+					(v->leaf() && child->leaf() && child->representative == v->representative)) {
+					continue;
+				}
+
+				// Avoid duplicate pairs
+				// cout << child->count << " " << v->count << endl;
+				if (child->level != v->level || child->representative <= v->representative) {
+					ws_pairs(child, v, s, wspd, points, d);
+				}
 			}
 		}
 	}
@@ -268,14 +254,18 @@ float emst(unsigned int n, unsigned int d) {
 	root->diagonal_radius = sqrt(0.5f);
 
 	for (uint32_t point = 0; point < n; ++point) {
+		/*
 		cout << point << " point ";
 		for (unsigned int i = 0; i < d; ++i) {
 			cout << points->at(point * d + i) << " ";
 		}
 		cout << endl;
+		*/
 
 		root->insert(point, points, d);
 	}
+
+	cout << "finished building quad tree" << endl;
 
 	// Build a 2-WSPD
 	auto wspd = new deque<pair<Node *, Node *>>();
