@@ -61,3 +61,12 @@ float random_interval_iterative() {
 	*((uint32_t *)&res) = (rand() >> 9) | 0x3f800000;
 	return res - 1.0f;
 }
+
+unsigned int power_of_two(unsigned int input) {
+	unsigned int result = 0;
+	while (input % 2 == 0) {
+		input /= 2;
+		++result;
+	}
+	return result;
+}

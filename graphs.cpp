@@ -3,121 +3,296 @@
 
 #include <algorithm>
 #include <iostream>
+#include <memory>
+#include <queue>
+#include <set>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <queue>
-#include <unordered_map>
 
-//experimentally determine that aprey's constant = the MST weight
-//we can delete any edge weights which exceed aprey's constant*k/N? Where k is some as yet unknown factor...
+using namespace std;
 
+Graph::Graph(uint32_t V) {
+	auto gen = RandomFloatGenerator();
+	this->V = V;
 
-void printqueue(priority_queue<Edge, vector<Edge>, CustomCompare> q) { // NB: pass by value so the print uses a copy
-    while(!q.empty()) {
-		std::cout << q.top().weight << ' ';
-        //std::cout << q.top() << ' ';
-        q.pop();
-    }
-    std::cout << '\n';
-}
+	float lim = 16.0 * power_of_two(V) / ((float)V);
 
-//populated priority queue passed in
-float Graph::kruskals(){
-    //printqueue(this->Q2);
-    float sum = 0;
-    uint32_t m = 0;
-    for (uint32_t i=0; i < this->V; i++){
-        this->set_ids[i] = i;
-        this->sets[i] = {i};
-    }
-    while (this->sets[m].size() < this->V){
-        Edge e = this->Q.top();
-        this->Q.pop();
-        if (find(e.u) == find(e.v)){
-            continue;
-        }
-        m = union_(find(e.u), find(e.v));
-        sum += e.weight;
-        //std::cout << e.u << ' ' << e.v << ' ' << e.weight << ' ';
-    }
-    return sum;
-}
-
-
-uint32_t Graph::find(uint32_t u){
-    return this->set_ids[u];
-}
-
-uint32_t Graph::union_(uint32_t i, uint32_t j){
-    if (this->sets[i].size() < this->sets[j].size()){
-        uint32_t k = i; 
-        i = j; 
-        j = k;
-    }
-    this->sets[i].insert(this->sets[j].begin(), this->sets[j].end());
-    for (uint32_t node : this->sets[j]){
-        this->set_ids[node] = i;
-    }
-    return i;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-float AbstractGraph::average_minimum_weight() {
-	std::unordered_set<uint32_t> outwards;
-	for (int i = 1; i < this->V; ++i) {
-		outwards.insert(i);
+	if (V < 16) {
+		lim = 1;
 	}
 
-	uint32_t current_node = 0;
-	float average = 0.0;
-
-	while (!outwards.empty()) {
-		float minimum_weight = -1;
-		uint32_t minimum_node = -1;
-
-		for (auto &node : outwards) {
-			float weight = this->weight(current_node, node);
-			//  We can replace this with a call to rand() assuming we only visit each edge once
-			if (minimum_node == -1 || weight < minimum_weight) {
-				minimum_weight = weight;
-				minimum_node = node;
+	for (uint32_t i = 0; i < V; i++) {
+		for (uint32_t j = i + 1; j < V; j++) {
+			Edge e(i, j, gen.random_float());
+			if (e.weight < lim) {
+				Q.push(e);
 			}
 		}
-
-		average += minimum_weight;
-		current_node = minimum_node;
-
-		outwards.erase(minimum_node);
 	}
-
-	return average / (this->V - 1);
 }
 
-float RandomCompleteGraph::weight(uint32_t u, uint32_t v) {
-	assert(u < this->V && v < this->V);
+// populated priority queue passed in
+float Graph::kruskals() {
+	float sum = 0;
+	uint32_t m = 0;
+	for (uint32_t i = 0; i < this->V; i++) {
+		this->set_ids[i] = i;
+		this->sets[i] = {i};
+	}
+	while (this->sets[m].size() < this->V) {
+		Edge e = this->Q.top();
+		this->Q.pop();
+		if (find(e.u) == find(e.v)) {
+			continue;
+		}
+		m = union_(find(e.u), find(e.v));
+		sum += e.weight;
+		// std::cout << e.u << ' ' << e.v << ' ' << e.weight << ' ';
+	}
+	return sum;
+}
 
-	if (u == v) {
-		return 0;
+uint32_t Graph::find(uint32_t u) { return this->set_ids[u]; }
+
+uint32_t Graph::union_(uint32_t i, uint32_t j) {
+	if (this->sets[i].size() < this->sets[j].size()) {
+		uint32_t k = i;
+		i = j;
+		j = k;
+	}
+	this->sets[i].insert(this->sets[j].begin(), this->sets[j].end());
+	for (uint32_t node : this->sets[j]) {
+		this->set_ids[node] = i;
+	}
+	return i;
+}
+
+struct Node {
+	unique_ptr<vector<Node *>> children;
+	vector<float> *center;
+	float radius;
+	float diagonal_radius;
+	uint32_t representative = -1;
+	uint32_t count = 0;
+	unsigned int level;
+
+	void split(unsigned int d) {
+		unsigned int children_count = 1 << d;
+		children = make_unique<vector<Node *>>(children_count);
+
+		// Calculate center
+		for (unsigned int index = 0; index < (1 << d); ++index) {
+			Node *child = new Node();
+
+			child->radius = this->radius / 2.0f;
+			child->diagonal_radius = this->diagonal_radius / 2.0f;
+			child->center = new vector<float>(d);
+			child->level = this->level + 1;
+
+			for (unsigned int coord = 0; coord < d; ++coord) {
+				if ((index & (1 << coord)) == 0) {
+					// Left side
+					child->center->at(coord) = this->center->at(coord) - child->radius;
+				} else {
+					// Right side
+					child->center->at(coord) = this->center->at(coord) + child->radius;
+				}
+			}
+
+			children->at(index) = child;
+		}
 	}
 
-	uint32_t l, h;
-	if (u > v) {
-		l = v;
-		h = u;
+	unsigned int get_index(deque<float>::iterator point, unsigned int d) {
+		unsigned int index = 0;
+
+		for (unsigned int coord = 0; coord < d; ++coord) {
+			if (*point > this->center->at(coord)) {
+				index |= (1 << coord);
+			}
+			++point;
+		}
+
+		return index;
+	}
+
+	void insert(uint32_t point, deque<float> *points, unsigned int d) {
+		count++;
+		deque<float>::iterator point_iterator = points->begin() + d * point;
+
+		if (leaf()) {
+			if (empty()) {
+				this->representative = point;
+			} else {
+				split(d);
+				insert(this->representative, points, d);
+				insert(point, points, d);
+			}
+		} else {
+			children->at(get_index(point_iterator, d))->insert(point, points, d);
+		}
+	}
+
+	bool leaf() { return children == nullptr; }
+	bool empty() { return representative == -1; }
+
+	void print_list() {
+		if (leaf() && !empty()) {
+			cout << representative << " ";
+		}
+
+		if (!leaf()) {
+			for (auto &val : *children) {
+				val->print_list();
+			}
+		}
+	}
+
+	void print() {
+		if (leaf() && !empty()) {
+			cout << "level " << level << endl;
+			cout << "   value " << representative << endl;
+		}
+		if (!leaf()) {
+			for (auto &val : *children) {
+				val->print();
+			}
+		}
+	}
+
+	void print_level(int depth) {
+		if (depth == 0) {
+			cout << count << endl;
+		} else {
+			if (!leaf()) {
+				for (auto &val : *children) {
+					val->print_level(depth - 1);
+				}
+			}
+		}
+	}
+};
+
+float dist_sq(vector<float> *u, vector<float> *v, unsigned int d) {
+	float sum = 0.0;
+	for (unsigned int coord = 0; coord < d; ++coord) {
+		sum += (u->at(coord) - v->at(coord)) * (u->at(coord) - v->at(coord));
+	}
+	return sum;
+}
+
+// rouding error/ or somethinge
+bool well_separated(Node *u, Node *v, uint32_t s, deque<float> *points, unsigned int d) {
+	if (u->leaf() && v->leaf()) {
+		return true;
+	}
+
+	vector<float> *center_u = u->center;
+	vector<float> *center_v = v->center;
+
+	float max_radius = max(u->diagonal_radius, v->diagonal_radius);
+
+	if (u->leaf()) {
+		center_u = new vector<float>(d);
+		for (unsigned int coord = 0; coord < d; ++coord) {
+			center_u->at(coord) = points->at(u->representative * d + coord);
+		}
+		max_radius = v->diagonal_radius;
+	}
+
+	if (v->leaf()) {
+		center_v = new vector<float>(d);
+		for (unsigned int coord = 0; coord < d; ++coord) {
+			center_v->at(coord) = points->at(v->representative * d + coord);
+		}
+		max_radius = u->diagonal_radius;
+	}
+
+	return dist_sq(center_u, center_v, d) >= (s + 2) * (s + 2) * max_radius * max_radius;
+}
+
+void ws_pairs(Node *u, Node *v, uint32_t s, deque<pair<Node *, Node *>> *wspd, deque<float> *points,
+			  unsigned int d) {
+
+	if (u->empty() || v->empty() ||
+		(v->leaf() && u->leaf() && u->representative == v->representative)) {
+		return;
+	}
+
+	cout << "calling ";
+	u->print_list();
+	cout << ", ";
+	v->print_list();
+	cout << endl;
+
+	if (well_separated(u, v, s, points, d)) {
+		pair<Node *, Node *> p(u, v);
+		cout << "   well separated " << endl;
+		wspd->push_back(p);
 	} else {
-		l = u;
-		h = v;
+		if (u->level > v->level) {
+			// Swap u and v
+			Node *w = u;
+			u = v;
+			v = w;
+		}
+		// isLeaf
+		if (!u->leaf()) {
+			for (auto &child : *u->children) {
+				ws_pairs(child, v, s, wspd, points, d);
+			}
+		} else if (!v->leaf()) {
+			for (auto &child : *v->children) {
+				ws_pairs(child, u, s, wspd, points, d);
+			}
+		}
+	}
+}
+
+float emst(unsigned int n, unsigned int d) {
+	assert(d > 1 && d <= 4);
+
+	// Generate random list of points
+	RandomFloatGenerator random;
+	deque<float> *points = new deque<float>(n * d);
+	for (int point_coord = 0; point_coord < n * d; ++point_coord) {
+		points->at(point_coord) = random.random_float();
 	}
 
-	return random_interval(seed + hash_1(l + hash_2(h)));
+	// Populate quad tree
+	Node *root = new Node();
+	root->center = new vector<float>(d);
+	fill(root->center->begin(), root->center->end(), 0.5f);
+	root->radius = 0.5f;
+	root->diagonal_radius = sqrt(0.5f);
+
+	for (uint32_t point = 0; point < n; ++point) {
+		cout << point << " point ";
+		for (unsigned int i = 0; i < d; ++i) {
+			cout << points->at(point * d + i) << " ";
+		}
+		cout << endl;
+
+		root->insert(point, points, d);
+	}
+
+	// Build a 2-WSPD
+	auto wspd = new deque<pair<Node *, Node *>>();
+	ws_pairs(root, root, 0, wspd, points, d);
+
+	cout << wspd->size() << endl;
+	for (auto &val : *wspd) {
+		cout << "pair ";
+		val.first->print_list();
+		cout << "   |   ";
+		val.second->print_list();
+		cout << endl;
+	}
+
+	// Cleanup
+	delete root;
+	delete points;
+
+	return 1.0f;
 }
