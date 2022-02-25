@@ -200,37 +200,51 @@ bool well_separated(Node *u, Node *v, uint32_t s, deque<float> *points, unsigned
 
 void ws_pairs(Node *u, Node *v, uint32_t s, deque<pair<Node *, Node *>> *wspd, deque<float> *points,
 			  unsigned int d) {
-
+	/*
 	cout << "call " << u->level << "[";
 	u->print_list();
 	cout << "]  " << v->level << "[";
 	v->print_list();
 	cout << "] " << endl;
+	*/
 
 	if (well_separated(u, v, s, points, d)) {
-		pair<Node *, Node *> p(u, v);
 		// cout << "   well separated " << endl;
-		wspd->push_back(p);
+		wspd->push_back(pair<Node *, Node *>(u, v));
 	} else {
-		if (u->level > v->level || u->leaf()) {
+		// cout << "   not well separated " << endl;
+		// used to be u->level > v->level
+		if (u->leaf()) {
 			// Swap u and v
 			Node *w = u;
 			u = v;
 			v = w;
 		}
-		// isLeaf
-		if (!u->leaf()) {
-			for (auto &child : *u->children) {
-				if (v->empty() || child->empty() ||
-					(v->leaf() && child->leaf() && child->representative == v->representative)) {
+
+		assert(!u->leaf());
+
+		for (unsigned int child_index = 0; child_index < (1 << d); ++child_index) {
+			auto child = u->children->at(child_index);
+
+			// Special case when nodes are the same
+			if (u->level == v->level && u->representative == v->representative) {
+				for (unsigned int second_child_index = 0; second_child_index <= child_index;
+					 ++second_child_index) {
+					auto second_child = u->children->at(second_child_index);
+					if (child->empty() || second_child->empty() ||
+						(child->leaf() && second_child->leaf() &&
+						 second_child->representative == child->representative)) {
+						continue;
+					}
+					ws_pairs(child, second_child, s, wspd, points, d);
+				}
+			} else {
+				if (child->empty() || v->empty() ||
+					(child->leaf() && v->leaf() && v->representative == child->representative)) {
 					continue;
 				}
-
 				// Avoid duplicate pairs
-				// cout << child->count << " " << v->count << endl;
-				if (child->level != v->level || child->representative <= v->representative) {
-					ws_pairs(child, v, s, wspd, points, d);
-				}
+				ws_pairs(child, v, s, wspd, points, d);
 			}
 		}
 	}
@@ -269,9 +283,11 @@ float emst(unsigned int n, unsigned int d) {
 
 	// Build a 2-WSPD
 	auto wspd = new deque<pair<Node *, Node *>>();
-	ws_pairs(root, root, 0, wspd, points, d);
+	ws_pairs(root, root, 2, wspd, points, d);
 
 	cout << wspd->size() << endl;
+
+	/*
 	for (auto &val : *wspd) {
 		cout << "pair ";
 		val.first->print_list();
@@ -279,6 +295,7 @@ float emst(unsigned int n, unsigned int d) {
 		val.second->print_list();
 		cout << endl;
 	}
+	*/
 
 	// Cleanup
 	delete root;
