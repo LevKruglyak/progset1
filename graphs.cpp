@@ -69,12 +69,15 @@ uint32_t Graph::union_(uint32_t i, uint32_t j) {
 }
 
 struct Node {
+	static uint32_t counter;
+
 	unique_ptr<vector<Node *>> children;
 	vector<float> *center;
 	float radius;
 	float diagonal_radius;
 	uint32_t representative = -1;
 	unsigned int level;
+	uint32_t uuid;
 
 	void split(unsigned int d) {
 		unsigned int children_count = 1 << d;
@@ -88,6 +91,9 @@ struct Node {
 			child->diagonal_radius = this->diagonal_radius / 2.0f;
 			child->center = new vector<float>(d);
 			child->level = this->level + 1;
+
+			Node::counter+= 1;
+			child->uuid = counter;
 
 			for (unsigned int coord = 0; coord < d; ++coord) {
 				if ((index & (1 << coord)) == 0) {
@@ -160,6 +166,25 @@ struct Node {
 	}
 };
 
+//https://stackoverflow.com/questions/15160889/how-can-i-make-an-unordered-set-of-pairs-of-integers-in-c
+struct pair_hash {
+    inline size_t operator()(const pair<Node*, Node*> & p) const {
+		Node* n1 = p.first;
+		Node* n2 = p.second;
+		if (n1->uuid > n2->uuid){
+			n1 = p.second;
+			n2 = p.first;
+		}
+		return n1->uuid*31+n2->uuid;
+	}
+};
+
+struct pair_equality{
+	inline bool operator() (const pair<Node*, Node*> & p1, const pair<Node*, Node*> & p2) const{
+    	return false; //FIX TO USE HASH
+	}
+};
+
 float dist_sq(vector<float> *u, vector<float> *v, unsigned int d) {
 	float sum = 0.0;
 	for (unsigned int coord = 0; coord < d; ++coord) {
@@ -168,7 +193,6 @@ float dist_sq(vector<float> *u, vector<float> *v, unsigned int d) {
 	return sum;
 }
 
-// rouding error/ or somethinge
 bool well_separated(Node *u, Node *v, uint32_t s, deque<float> *points, unsigned int d) {
 	if (u->leaf() && v->leaf()) {
 		return true;
@@ -198,17 +222,19 @@ bool well_separated(Node *u, Node *v, uint32_t s, deque<float> *points, unsigned
 	return dist_sq(center_u, center_v, d) >= (s + 2) * (s + 2) * max_radius * max_radius;
 }
 
+//currently checked lets us add elements multiple times because pair_equality is incorrect
 void ws_pairs(Node *u, Node *v, uint32_t s, deque<pair<Node *, Node *>> *wspd, deque<float> *points,
-			  unsigned int d) {
+			  unsigned int d, unordered_set< pair<Node*, Node*>,  pair_hash, pair_equality> *checked) {
 
-	cout << "call " << u->level << "[";
+	cout << "call (" << u->uuid << "," << v->uuid << ")  " << u->level << "[";
 	u->print_list();
 	cout << "]  " << v->level << "[";
 	v->print_list();
 	cout << "] " << endl;
 
+	pair<Node*, Node*> p(u, v);
+	checked->insert(p);
 	if (well_separated(u, v, s, points, d)) {
-		pair<Node *, Node *> p(u, v);
 		// cout << "   well separated " << endl;
 		wspd->push_back(p);
 	} else {
@@ -218,7 +244,6 @@ void ws_pairs(Node *u, Node *v, uint32_t s, deque<pair<Node *, Node *>> *wspd, d
 			u = v;
 			v = w;
 		}
-		// isLeaf
 		if (!u->leaf()) {
 			for (auto &child : *u->children) {
 				if (v->empty() || child->empty() ||
@@ -228,13 +253,17 @@ void ws_pairs(Node *u, Node *v, uint32_t s, deque<pair<Node *, Node *>> *wspd, d
 
 				// Avoid duplicate pairs
 				// cout << child->count << " " << v->count << endl;
-				if (child->level != v->level || child->representative <= v->representative) {
-					ws_pairs(child, v, s, wspd, points, d);
+				//if (child->level != v->level || child->representative <= v->representative) {
+				pair<Node*, Node*> p(child, v);
+				if (checked->find(p) == checked->end()){
+					ws_pairs(child, v, s, wspd, points, d, checked);
 				}
 			}
 		}
 	}
 }
+
+uint32_t Node::counter=0;
 
 float emst(unsigned int n, unsigned int d) {
 	assert(d > 1 && d <= 4);
@@ -265,11 +294,14 @@ float emst(unsigned int n, unsigned int d) {
 		root->insert(point, points, d);
 	}
 
+	cout << "counter: " << Node::counter << endl;
+
 	cout << "finished building quad tree" << endl;
 
 	// Build a 2-WSPD
 	auto wspd = new deque<pair<Node *, Node *>>();
-	ws_pairs(root, root, 0, wspd, points, d);
+	auto checked = new unordered_set< pair<Node*, Node*>,  pair_hash, pair_equality>;
+	ws_pairs(root, root, 0, wspd, points, d, checked);
 
 	cout << wspd->size() << endl;
 	for (auto &val : *wspd) {
