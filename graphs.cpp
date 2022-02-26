@@ -16,7 +16,7 @@ Graph::Graph(uint32_t V) { this->V = V; }
 
 void Graph::populate_random() {
 	auto gen = RandomFloatGenerator();
-	float lim = 16.0 * power_of_two(V) / ((float)V);
+	float lim = 4.0 * power_of_two(V) / ((float)V);
 
 	if (V < 16) {
 		lim = 1;
@@ -28,6 +28,22 @@ void Graph::populate_random() {
 			if (e.weight < lim) {
 				Q.push(e);
 			}
+		}
+	}
+}
+
+void Graph::populate_random_2d() {
+	auto gen = RandomFloatGenerator();
+	vector<pair<float, float>> points;
+	for (uint32_t i = 0; i < V; ++i) {
+		points.push_back(pair<float, float>(gen.random_float(), gen.random_float()));
+	}
+
+	for (uint32_t i = 0; i < V; ++i) {
+		for (uint32_t j = 0; j < i; ++j) {
+			Q.push(Edge(i, j,
+						sqrt(pow(points[i].first - points[j].first, 2) +
+							 pow(points[i].second - points[j].second, 2))));
 		}
 	}
 }
@@ -314,9 +330,10 @@ float emst(unsigned int n, unsigned int d) {
 
 	// Build a 2-WSPD
 	auto wspd = new deque<pair<Node *, Node *>>();
-	ws_pairs(root, root, 2, wspd, points, d);
+	ws_pairs(root, root, 1, wspd, points, d);
 
-	// cout << wspd->size() << endl;
+	// cout << "finished wspd " << wspd->size() << endl;
+	//  cout << wspd->size() << endl;
 
 	/*
 	for (auto &val : *wspd) {
@@ -332,7 +349,7 @@ float emst(unsigned int n, unsigned int d) {
 	Graph *G = new Graph(n);
 
 	float epsilon = 0.1;
-	float gamma = 10;
+	float gamma = 1;
 	int depth_bound = log2(4 / epsilon);
 	int size_bound = gamma / epsilon;
 
@@ -394,10 +411,11 @@ float emst(unsigned int n, unsigned int d) {
 			}
 		}
 
-		G->Q.push(Edge(min_pair.first, min_pair.second, min_dist));
+		G->Q.push(Edge(min_pair.first, min_pair.second, sqrt(min_dist)));
 	}
 
-	// cout << "resulting graph:" << endl;
+	// cout << "finished building graph" << endl;
+	//  cout << "resulting graph:" << endl;
 	/*
 	while (!G->Q.empty()) {
 		auto edge = G->Q.top();

@@ -21,7 +21,11 @@ void compute_minimum_weight(unsigned int points, unsigned int dimension, unsigne
 		Graph G = Graph(points);
 		G.populate_random();
 		*output = G.kruskals();
-	} else if (dimension == 2 || dimension == 3 || dimension == 4) {
+		//} else if (dimension == 2) {
+		// Graph G = Graph(points);
+		// G.populate_random_2d();
+		//*output = G.kruskals();
+	} else {
 		*output = emst(points, dimension);
 	}
 }
@@ -44,46 +48,46 @@ int main(int argc, char *argv[]) {
 			trials = (unsigned int)strtol(argv[3], nullptr, 10);
 			dimension = (unsigned int)strtol(argv[4], nullptr, 10);
 
-			// Don't randonly seed the rng if in debug mode
-			if (!debug) {
-			}
+			unsigned int n = points;
+			for (n = 128; n < points; n *= 2) {
+				std::cout << n << " ";
+				auto results = new std::vector<float>(trials);
 
-			auto results = new std::vector<float>(trials);
+				global_timer.start();
 
-			global_timer.start();
+				// Don't use threads in debug mode
+				if (!debug) {
+					std::vector<std::thread> threads;
 
-			// Don't use threads in debug mode
-			if (!debug) {
-				std::vector<std::thread> threads;
+					for (unsigned int trial = 0; trial < trials; ++trial) {
+						threads.push_back(std::thread(compute_minimum_weight, n, dimension, trial,
+													  &results->data()[trial]));
+					}
 
-				for (unsigned int trial = 0; trial < trials; ++trial) {
-					threads.push_back(std::thread(compute_minimum_weight, points, dimension, trial,
-												  &results->data()[trial]));
+					for (auto &thr : threads) {
+						thr.join();
+					}
+				} else {
+					for (unsigned int trial = 0; trial < trials; ++trial) {
+						compute_minimum_weight(n, dimension, trial, &results->data()[trial]);
+					}
 				}
 
-				for (auto &thr : threads) {
-					thr.join();
+				global_timer.stop();
+
+				// Calculate and display average
+				float average = 0.0f;
+				for (auto &result : *results) {
+					average += result;
+					//					std::cout << "result: " << result << std::endl;
 				}
-			} else {
-				for (unsigned int trial = 0; trial < trials; ++trial) {
-					compute_minimum_weight(points, dimension, trial, &results->data()[trial]);
+				average /= trials;
+
+				std::cout << average << std::endl;
+
+				if (debug) {
+					std::cout << "time: " << global_timer.seconds() << std::endl;
 				}
-			}
-
-			global_timer.stop();
-
-			// Calculate and display average
-			float average = 0.0f;
-			for (auto &result : *results) {
-				average += result;
-				//					std::cout << "result: " << result << std::endl;
-			}
-			average /= trials;
-
-			std::cout << average << std::endl;
-
-			if (debug) {
-				std::cout << "time: " << global_timer.seconds() << std::endl;
 			}
 
 			exit(0);
