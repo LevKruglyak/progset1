@@ -67,7 +67,7 @@ The naive approach to computing the MST of a random complete graph would be to s
 
 Using procedural random functions we can actually dispense with storing the graph at all, reducing the space complexity to constant. As opposed to an iterative random function which outputs a sequence of random numbers based on the order in which it was called, a procedural random function takes in some input, and consistently returns the same random number every time it is called. 
 
-So a procedural random graph need only contain the number of verticies in the graph and a seed value. The graph comes with some procedural random function which takes in a seed and two edge indices. (We can pick the random function so that it is symmetric in the edge indicies, so that the graph is property undirected) Then every time we want to fetch an edge, we simply call this procedural random function, and it will return the same random edge weight. Such procedural random functions can be easily created by composing several cryptographic integer functions and then using some bit manipulations to convert this to a float.
+So a procedural random graph need only contain the number of verticies in the graph and a seed value. The graph comes with some procedural random function which takes in a seed and two edge indices. (We can pick the random function so that it is symmetric in the edge indicies, so that the graph is property undirected) Then every time we want to fetch an edge, we simply call this procedural random function, and it will return the same random edge weight. Such procedural random functions can be easily created by composing several cryptographic integer functions and then using some bit manipulations to convert this to a float. We do some fun stuff with shadertoy to visualize the efficacy of various cryptographic functions.
 
 To find the MST of such a procedural graph, we apply Prim's algorithm to this graph interface, since Prim's algorithm does not require any storing of edges. In practice, we found that this approach was too slow, so we switched to a different approach.
 
@@ -132,37 +132,33 @@ This algorithm doesn't give an exact MST but an approximate one. More formally, 
 
 \subsection{Overview of the algorithm}
 
+The general idea behind the algorithm is to first build a quadtree (resp. higher order trees in $d>2$) containing all of the points in the graph. Building such a quadtree takes only $O(n\log n)$ time complexity, and it is actually the fastest part of the algorithm. Then we find an $s$-well separated pair decomposition ($s$-WSPD) of this quadtree into a set of pairs of well separated nodes. (Choosing this $s$ is described later.) 
+
+If we choose $s$ carefully, we can construct a $2$-WSPD of size $O(n)$ in $O(n\log n)$ time. Finally, we select a minimum edge connecting each pair of well separated nodes using some depth criteria to ensure we don't iterate throuh too many pairs of edges. We add these minimum edges to a graph, and so we now have a graph with $O(n)$ edges, and it can be proven that it must contain a spanning tree whose weight is at most $(1+\epsilon)$ times the actual minimum spanning tree. Running any MST algorithm on this reduced graph gives us our desired result, again in $O(n\log n)$ time.
+
 \RestyleAlgo{ruled}
 \begin{algorithm}
 \caption{Approx-EMST($P, \varepsilon$)}
 \DontPrintSemicolon
 $Q(P) \leftarrow $ a quadtree for $P$\;
 $\Psi(P)$ a $s$-WSPD for $P$\;
-$G\leftarrow(P,\emptyset)$ 
- 
-% \SetKwFunction{shovel}{shovel}
-% \SetKwProg{myalg}{procedure}{}{}
-
-% \myalg{\shovel{$u,v\in V$}} {
-%     assuming Pat is at $u$, shovel the sidewalk from $u$ to $v$.\;
-%     Pat should now be at $v$.
-% }\;
-
-% \SetKwFunction{recursiveShovel}{recursive\_shovel}
-
-% $\forall (i,j)\in E, e[i,j]\leftarrow 0$ \Comment*[r]{start all edges as not shovelled}
-% \myalg{\recursiveShovel{$G(V,E), s\in V$}}{
-%     \For(){$(s,v)\in E$}{
-%         \If(){$e[s,v] = 0$ or $e[v,s]=0$}{
-%             $e[s,v], e[v,s]\leftarrow 1$\Comment*[r]{mark edge as shovelled} 
-%             \shovel{$s,v$}\Comment*[r]{point A}
-%             \recursiveShovel{$G, v$}\;
-%             \shovel{$v,s$}\Comment*[r]{point B}
-%         }
-%     }
-% }
+$G\leftarrow(P,\emptyset)$\; 
+\For(){$(u, v) \in \Psi(P)$}{
+    $U \leftarrow \{u\}$; $V \leftarrow \{v\}$\;
+    $k \leftarrow 1$\;
+    \While(){$k \leq \lambda(\varepsilon)$ and $\max(|U|, |V|) \leq \gamma/\varepsilon$}{
+        $U \leftarrow $ expand($U$); $V \leftarrow $ expand($V$)\;
+        $k \leftarrow k + 1$\;
+    }
+    $C \leftarrow \{($rep($u^\prime$), rep($v^\prime$)) $ : (u^\prime, v^\prime) \in U \times V\}$\;
+    $(p, q) \leftarrow $ argmin\textsubscript{$(p,q)\in C$}$||pq||$\;
+    add edge $(p, q)$ to $G$\;
+}
+\SetKwFunction{kruskals}{kruskals\_mst}
+return \kruskals(G);
 \end{algorithm}
 
+Here, $\lambda(\varepsilon)=2-\log_2\varepsilon$ and $\gamma>0$ is some constant involved in the accuracy of the graph. Choosing it must be done experimentally, we found that $\gamma\approx 1$ works well. Lastly, $s$ is a constant involved in determining how large/accurate the $s$-WSPD construction is, we found that $s < 1$ works well. Increasing it significantly past this to say, $s=2$ as the official algorithm suggests leads to diminishing returns in the accuracy of the algorithm, yet increases runtime significantly. 
 
 \subsection{Numerical results}
 As before, for each $n$ we ran $8$ trials, multithreaded for maximum performance and averaged the results. The algorithm ran very quickly; for a benchmark, it was able to calculate $f_4(2^{18})$ in under $20$ seconds. Letting the algorithm run for only a few minutes, we were able to obtain the following values:
@@ -250,11 +246,7 @@ In particular, for a uniform probability distribution we have $f_d(n)\in \Theta(
 \section{Conclusion}
 \label{sec:Conclusion}
 
-We thank you for considering using this \hologo{LaTeX} template for preparing your ISARC paper. 
-Using \hologo{LaTeX} helps producing manuscripts that are formatted correctly first time, and thus avoid rework to you and the editorial team. 
-
-If you have any question about the template and its guidelines, do not hesitate to contact the ISARC conference team.
-
+As mentioned, our algorithm is quite efficient, calculating the MST for $f_4(2^{18})$ in under 20 seconds. Storage was not an issue. A notable issue we had at first when implementing our own procedural random functions was that $f_0(n)$ seemingly converged to $0.6$, but this was because our random function wasn't uniformly distributed. Once we switched to using the mt19937 uniform distribution library, these issues disappeared.
 
 \bibliography{main}
 
